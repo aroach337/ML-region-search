@@ -195,8 +195,9 @@ $CURL -X POST -d @- -H "Content-type: application/json" http://${HOST}:8002/mana
       "fast-element-word-searches": false,
       "uri-lexicon": true,
       "path-namespace": [
-        "prefix": "foo",
-        "namespace-uri": "http://marklogic.com/foo"
+        { "prefix": "foo",
+          "namespace-uri": "http://marklogic.com/foo"
+        }
       ],
       "geospatial-region-path-index": [
          { "path-expression": "//foo:region",
