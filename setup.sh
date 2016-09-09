@@ -233,7 +233,7 @@ $CURL -X POST -d @- -H "Content-type: application/json" \
       "root": "$ROOT_DIR",
       "port": $PORT,
       "content-database": "$DB",
-      "modules-database": 0,
+      "modules-database": "file-system",
       "threads": 64,
       "default-user": "$USER",
       "authentication": "application-level"
