@@ -217,7 +217,7 @@ $CURL -X POST -d @- -H "Content-type: application/json" \
       "server-type": "xdbc",
       "group-name": "$GROUP",
       "root": "/ext/$DB/",
-      "port": $PORT,
+      "port": $XCC_PORT,
       "content-database": "$DB",
       "modules-database": "Modules",
       "threads": 64
