@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<!--
+Copyright 2016 MarkLogic Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<html>
+
+
+<head>
+    <title>Geospatial Region Search</title>
+    <style type="text/css">
+      html, body, div { margin: 0; padding: 0; }
+      html, body { height: 100%; }
+      #text select, #text input, #text button {
+        position: relative;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+    </style>
+    <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBWj1dLecWvRSiLz99rdI_P7AaDxoz0odw&libraries=drawing,visualization&v=3"></script>
+    <script type="text/javascript" src="//code.jquery.com/jquery-1.11.1.min.js"></script>
+    <script type="text/javascript">
+var theMap;
+var shape;
+var results = [];
+
+function setWktTextBox(str) {
+  $("#wkt_textbox").val(str);
+}
+
+function setShape(region) {
+  if (shape) shape.setMap(null);
+  shape = region;
+}
+
+function encodePoly(poly) {
+  var str = "";
+  poly.getPath().forEach(function(xy, i) {
+    str = str + xy.lat() + "," + xy.lng() + " ";
+  });
+  return str;
+}
+
+function doPoly(poly) {
+  var str = encodePoly(poly);
+  setWktTextBox(str);
+}
+
+function drawPoly(poly) {
+  doPoly(poly);
+  setShape(poly);
+  google.maps.event.addListener(poly,"dragend",function() {doPoly(poly);});
+  google.maps.event.addListener(poly.getPath(),"insert_at",function() {doPoly(poly);});
+  google.maps.event.addListener(poly.getPath(),"remove_at",function() {doPoly(poly);});
+  google.maps.event.addListener(poly.getPath(),"set_at",function() {doPoly(poly);});
+}
+
+function encodeLine(line) {
+  var str = "LINESTRING(";
+  var first = true;
+  line.getPath().forEach(function(xy, i) {
+    if (!first) str = str + ",";
+    str = str + xy.lng() + " " + xy.lat();
+    first = false;
+  });
+  str = str + ")";
+  return str;
+}
+
+function doLine(line) {
+  var str = encodeLine(line);
+  setWktTextBox(str);
+}
+
+function drawLine(line) {
+  doLine(line);
+  setShape(line);
+  google.maps.event.addListener(line,"dragend",function() {doLine(line);});
+  google.maps.event.addListener(line.getPath(),"insert_at",function() {doLine(line);});
+  google.maps.event.addListener(line.getPath(),"remove_at",function() {doLine(line);});
+  google.maps.event.addListener(line.getPath(),"set_at",function() {doLine(line);});
+}
+
+function encodeCirc(circ) {
+  var radius = circ.getRadius();
+  var center = circ.getCenter();
+  var lat = center.lat();
+  var lng = center.lng();
+  var str = "@" + radius + " " + lat + "," + lng;
+  return str;
+}
+
+function doCirc(circ) {
+  var str = encodeCirc(circ);
+  setWktTextBox(str);
+}
+
+function drawCirc(circ) {
+  doCirc(circ);
+  setShape(circ);
+  google.maps.event.addListener(circ,"dragend",function() {doCirc(circ);});
+  google.maps.event.addListener(circ,"radius_changed",function() {doCirc(circ);});
+  google.maps.event.addListener(circ,"center_changed",function() {doCirc(circ);});
+}
+
+function encodeRect(rect) {
+  var bounds = rect.getBounds();
+  var sw = bounds.getSouthWest();
+  var s = sw.lat();
+  var w = sw.lng();
+  var ne = bounds.getNorthEast();
+  var n = ne.lat();
+  var e = ne.lng();
+  var str = "[" + s + "," + w + "," + n + "," + e + "]";
+  return str;
+}
+
+function doRect(rect) {
+  var str = encodeRect(rect);
+  setWktTextBox(str);
+}
+
+function drawRect(rect) {
+  doRect(rect);
+  setShape(rect);
+  google.maps.event.addListener(rect,"dragend",function() {doRect(rect);});
+  google.maps.event.addListener(rect,"bounds_changed",function() {doRect(rect);});
+}
+
+function encodeMark(mark) {
+  var pt = mark.getPosition();
+  var str = pt.lat() + "," + pt.lng();
+  return str;
+}
+
+function doMark(mark) {
+  var str = encodeMark(mark);
+  setWktTextBox(str);
+}
+
+function drawMark(mark) {
+  doMark(mark);
+  setShape(mark);
+  google.maps.event.addListener(mark,"dragend",function() {doMark(mark);});
+}
+
+function initialize() {
+  var mapOptions = {
+    center: { lat: 37.507377, lng: -122.247081 },
+    zoom: 10
+  };
+  theMap = new google.maps.Map(document.getElementById('map-canvas'),mapOptions);
+
+  var drawingManager = new google.maps.drawing.DrawingManager({
+    polygonOptions: {
+      geodesic: true,
+      draggable: true,
+      editable: true
+    },
+    polylineOptions: {
+      geodesic: true,
+      draggable: true,
+      editable: true
+    },
+    circleOptions: {
+      draggable: true,
+      editable: true
+    },
+    rectangleOptions: {
+      draggable: true,
+      editable: true
+    },
+    markerOptions: {
+      draggable: true
+    }
+  });
+  drawingManager.setMap(theMap);
+
+  google.maps.event.addListener(drawingManager, 'polygoncomplete', drawPoly);
+  google.maps.event.addListener(drawingManager, 'circlecomplete', drawCirc);
+  google.maps.event.addListener(drawingManager, 'polylinecomplete', drawLine);
+  google.maps.event.addListener(drawingManager, 'rectanglecomplete', drawRect);
+  google.maps.event.addListener(drawingManager, 'markercomplete', drawMark);
+}
+
+google.maps.event.addDomListener(window, 'load', initialize);
+
+function doResize() {
+  $("#map-canvas").css("height", $(window).height() - $("#text").height());
+}
+$(doResize);
+$(window).resize(doResize);
+
+function displayResult(res) {
+  results.forEach(function(x) { x.setMap(null) });
+  results = [];
+  res.results.forEach(makeRegion);
+}
+
+function search() {
+  var wkt = $("#wkt_textbox").val();
+  var op = $("#op_dropdown").val();
+  var payload = {
+    region: wkt,
+    operation: op,
+  };
+  $.ajax({
+    type: "POST",
+    url: "search.xqy",
+    data: JSON.stringify(payload),
+    contentType: "application/json",
+    dataType: "json",
+    success: displayResult
+  });
+}
+
+function makeRegion(region) {
+  if (region.feature) {
+    if (region.feature.geometry.type==="Point") {
+      var ll = {lat: region.feature.geometry.coordinates[1],
+      lng: region.feature.geometry.coordinates[0]};
+      var mark = new google.maps.Marker({position: ll, map: theMap});
+      results.push(mark);
+    } else if (region.feature.geometry.type==="Polygon") {
+      var coords = region.feature.geometry.coordinates[0];
+      var lls = [];
+      for (var i=0; i<coords.length; i++) {
+        lls.push({lat: coords[i][1],
+                  lng: coords[i][0]});
+      }
+      var poly=new google.maps.Polygon({paths      : lls,
+                                        map        : theMap,
+                                        //geodesic   : true,
+                                        fillColor  : "blue",
+                                        strokeColor: "blue"});
+      results.push(poly);
+    } else if (region.feature.geometry.type==="LineString") {
+      var coords = region.feature.geometry.coordinates;
+      var lls = [];
+      for (var i=0; i<coords.length; i++) {
+        lls.push({lat: coords[i][1],
+                  lng: coords[i][0]});
+      }
+      var line = new google.maps.Polyline({path       : lls,
+                                           map        : theMap,
+                                           //geodesic   : true,
+                                           strokeColor: "blue"});
+      results.push(line);
+    }
+  } else if (region.str && region.str.charAt(0) == '@') {
+    var circleStr = region.str.substring(1);
+    var circleData = circleStr.split(/[ |,]/);
+    var radius = Number(circleData[0]);
+    var center = {
+      lat: Number(circleData[1]),
+      lng: Number(circleData[2])
+    };
+    var circ = new google.maps.Circle({map        : theMap,
+                                       center     : center,
+                                       radius     : radius,
+                                       strokeColor: "blue",
+                                       fillColor  : "blue"});
+    results.push(circ);
+  } else if (region.str && region.str.charAt(0) == '[') {
+    var rectStr = region.str.replace(/[\[|\]]/g,"");
+    var rectData = rectStr.split(",").map(Number);
+    var rect =  new google.maps.Rectangle({
+      map: theMap,
+      bounds: {
+        south: rectData[0],
+        west: rectData[1],
+        north: rectData[2],
+        east: rectData[3]
+      },
+      fillColor  : blue,
+      strokeColor: blue
+    });
+    results.push(rect);
+  }
+}
+    </script>
+</head>
+
+
+<body>
+  <div id="text">
+    <select id="op_dropdown">
+      <option value="contains">contains</option>
+      <option value="covered-by">covered-by</option>
+      <option value="covers">covers</option>
+      <option value="crosses">crosses</option>
+      <option value="disjoint">disjoint</option>
+      <option value="equals">equals</option>
+      <option value="intersects" selected>intersects</option>
+      <option value="overlaps">overlaps</option>
+      <option value="touches">touches</option>
+      <option value="within">within</option>
+    </select>
+    <textarea rows="4" cols="80" id="wkt_textbox" placeholder="Input WKT or string serialized cts:region..."></textarea>
+    <button type="button" onclick="search();">Search</button>
+  </div>
+  <div id="map-canvas"></div>
+</body>
+
+
+</html>
