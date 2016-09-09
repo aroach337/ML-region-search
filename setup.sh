@@ -213,7 +213,7 @@ EOF
 echo "Creating load app server"
 $CURL -X POST -d @- -H "Content-type: application/json" \
   "http://${HOST}:8002/manage/v2/servers" <<-EOF
-    { "server-name": "$PORT-xcc",
+    { "server-name": "$XCC_PORT-xcc",
       "server-type": "xdbc",
       "group-name": "$GROUP",
       "root": "/ext/$DB/",
